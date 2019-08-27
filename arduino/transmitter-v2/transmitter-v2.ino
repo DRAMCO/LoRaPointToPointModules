@@ -24,19 +24,17 @@
                 - spreading factor
 */
 
+/*
+ * 
+ * the V2 version only transmits at SF12 TP 20 and transmits a counter
+ */
+ 
 #include <LoRaLibMod.h>
 
 #define SPREADING_FACTOR               12
 
+#define TRANSMISSION_INTERVAL         8000
 
-#if SPREADING_FACTOR == 7
-  #define TRANSMISSION_INTERVAL         1000/2
-#elif SPREADING_FACTOR == 9
-  #define TRANSMISSION_INTERVAL         2000/2
-#elif SPREADING_FACTOR == 12
-  #define TRANSMISSION_INTERVAL         8000/2
-
-#endif
 
 #define TP                              20
 
@@ -53,6 +51,7 @@
 #define LED                             A0
 
 float FREQ = 869.525; // %10 duty-cycle band
+unsigned int counter = 0; // to hold counter which will be used to compute the PER
 
 
 // create instance of LoRa class using SX1278 module
@@ -60,8 +59,6 @@ float FREQ = 869.525; // %10 duty-cycle band
 // DIO0/INT0 pin:     2
 // DIO1/INT1 pin:     3
 SX1278 lora = new Module(6, 2, 3);
-
-
 
 
 void setup() {
@@ -107,17 +104,20 @@ void loop() {
 }
 
 void sendPacket() {
-  byte arr[1];
-  arr[0] = SPREADING_FACTOR;
+  byte arr[2];
 
+  arr[0] = (byte) counter;
+  arr[1] = (byte) counter >> 8;
+  
   debug("Sending packet ... ");
-  debug("Spreading factor: " + SPREADING_FACTOR);
+  debug("with counter " + String(counter));
 
-  int state = lora.transmit(arr, 1);
+  int state = lora.transmit(arr, 2);
 
   if (state == ERR_NONE) {
     // the packet was successfully transmitted
     debug(" success!");
+    counter++;
 
     // print measured data rate
     String s = "Datarate:\t";
