@@ -392,9 +392,9 @@ void testGPS() {
 
     //testBuzzer();
 
-    //testSDCard();
+    testSDCard();
 
-    //testGPS();
+    testGPS();
 
     testLoRa();
 
