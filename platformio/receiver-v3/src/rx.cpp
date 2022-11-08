@@ -1,18 +1,24 @@
+//#define USE_GPS
+//#define USE_SD
+#define USE_SERIAl
+
 #include <Arduino.h>
+#include <SPI.h>
 
 /*************** SD CARD ****************/
-#include <SPI.h>
+#ifdef USE_SD
 #include "SdFat.h"
-
 SdFat sd;
 File file;
 #define CHIP_SELECT 4
 #define CAN_WE_WRITE_PIN A1
 
 #define DELIMETER ','
-/*************** SD CARD ****************/
+#endif
+
 
 /*************** GPS ****************/
+#ifdef USE_GPS
 #include <TinyGPS++.h>
 #include <SoftwareSerial.h>
 
@@ -32,8 +38,7 @@ TinyGPSCustom vdop(gps, "GPGSA", 17); // $GPGSA sentence, 17th element
 
 uint32_t lastGPSupdate;
 #define GPS_WRITE_UPDATE_INTERVAL 3000
-
-/*************** GPS ****************/
+#endif
 
 /*************** LORA ****************/
 #include <LoRaLibMod.h>
@@ -72,6 +77,7 @@ void slowBlink()
   blink(2000,200);
 }
 
+#ifdef USE_SD
 bool canWrite()
 {
   while (analogRead(CAN_WE_WRITE_PIN) > 25)
@@ -91,14 +97,17 @@ bool canWrite()
 
   return true;
 }
+#endif
 
 void error()
 {
+  #ifdef USE_SD
   if (file)
   {
     file.flush();
     file.close();
   }
+  #endif
   while (1)
   {
     blink();
@@ -112,8 +121,12 @@ static void smartDelay(unsigned long ms)
   unsigned long start = millis();
   do
   {
+    #ifdef USE_GPS
     while (ss.available())
       gps.encode(ss.read());
+    #else
+      delay(1);
+    #endif
   } while (millis() - start < ms);
 }
 
@@ -200,8 +213,10 @@ bool checkRx()
   {
     digitalWrite(LED_PIN, HIGH);
     receivePacket();
+    #ifdef USE_SD
     writeToSD(true);
-        receivedFlag = false;
+    #endif
+    receivedFlag = false;
     digitalWrite(LED_PIN, LOW);
     return true;
   }
@@ -227,6 +242,7 @@ void initLoRa()
   loraListen();
 }
 
+#ifdef USE_GPS
 static void printDateTime(TinyGPSDate &d, TinyGPSTime &t)
 {
   if (!d.isValid())
@@ -253,7 +269,9 @@ static void printDateTime(TinyGPSDate &d, TinyGPSTime &t)
 
   smartDelay(0);
 }
+#endif
 
+#ifdef USE_GPS
 void initGPS(){
   Serial.println(F("Init GPS"));
 
@@ -279,7 +297,9 @@ void initGPS(){
   fastBlink();
   fastBlink();
 }
+#endif
 
+#ifdef USE_SD
 void initSDCard(){
   Serial.print("\nInitializing SD card...");
   if (!sd.begin(CHIP_SELECT, SD_SCK_MHZ(4)))
@@ -298,6 +318,7 @@ void initSDCard(){
 
   Serial.println("done!");
 }
+#endif
 
 void initBoard(){
   Serial.println(F("Init Board"));
@@ -306,21 +327,28 @@ void initBoard(){
   digitalWrite(LED_PIN, LOW);
 
   // do not proceed if button is not on
+  #ifdef USE_SD
   canWrite();
+  #endif
 
   //Enable Pin 3V3 LDO
   pinMode(POWER_ENABLE_PIN, OUTPUT);
   digitalWrite(POWER_ENABLE_PIN, HIGH);
 
+  #ifdef USE_SD
   initSDCard();
+  #endif
 
   initLoRa();
-
+  
+  #ifdef USE_GPS
   initGPS();
+  #endif
 
   smartDelay(0);
 }
 
+#ifdef USE_GPS
 String getDateTimeString(TinyGPSDate &d, TinyGPSTime &t)
 {
   char sz[32];
@@ -335,7 +363,9 @@ String getDateTimeString(TinyGPSDate &d, TinyGPSTime &t)
 
   smartDelay(0);
 }
+#endif
 
+#ifdef USE_GPS
 void writeToSD(bool packet)
 {
   canWrite();
@@ -384,6 +414,7 @@ void writeToSD(bool packet)
     error();
   }
 }
+#endif
 
 void setup()
 {
@@ -393,7 +424,9 @@ void setup()
 
   initBoard();
 
+  #ifdef USE_GPS
   lastGPSupdate = millis();
+  #endif
 }
 
 void loop()
@@ -402,12 +435,18 @@ void loop()
 
   checkRx();
 
+  #ifdef USE_SD
   canWrite();
+  #endif
 
+  #ifdef USE_GPS
   if (millis() - lastGPSupdate > GPS_WRITE_UPDATE_INTERVAL)
   {
+    #ifdef USE_SD
     writeToSD(false);
+    #endif
     lastGPSupdate = millis();
   }
+  #endif
 
 }
