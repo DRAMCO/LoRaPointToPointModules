@@ -29,7 +29,7 @@
  * the V2 version only transmits at SF12 TP 20 and transmits a counter
  */
 
-#define NODE_UID 0xd0
+#define NODE_UID 0x60
 
 #include <LoRaLibMod.h>
 

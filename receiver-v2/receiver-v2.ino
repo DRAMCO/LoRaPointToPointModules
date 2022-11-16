@@ -40,7 +40,7 @@
 //#define USE_GPS
 //#define USE_SD
 
-#define NODE_UID 0xd0
+#define NODE_UID 0xB0
 
 #include <LoRaLibMod.h>
 #include <SPI.h>
@@ -364,7 +364,7 @@ void loop() {
   smartDelay(10);
   checkRx();
 
-  uint32_t currentTime = millis();
+  // uint32_t currentTime = millis();
 
   #ifdef USE_SD
   if (analogRead(CAN_WE_WRITE_PIN) > 25) {
@@ -379,8 +379,8 @@ void loop() {
   }
   #endif
 
-  checkRx();
-  smartDelay(10);
+  // checkRx();
+  // smartDelay(10);
 
   #ifdef USE_SD
   if (currentTime - lastSDFlushed > FLUSH_INTERVAL) {
@@ -389,13 +389,13 @@ void loop() {
   }
   #endif
 
-  checkRx();
+  // checkRx();
 
   #ifdef USE_GPS
   receiveGPS();
   #endif
   
-  checkRx();
+  // checkRx();
 
 }
 
@@ -436,39 +436,6 @@ bool receivePacket() {
   #ifdef USE_SD
   writeToSD(true);
   #endif
-
-}
-
-void sendPacket() {
-  byte arr[4];
-  arr[0] = (byte) NODE_UID;
-  arr[1] = (byte) counterTx;
-  arr[2] = (byte) counterTx >> 8;
-  
-  debug("Sending packet ... ");
-  debug("with counter " + String(counterTx));
-
-  int state = lora.transmit(arr, 2);
-  
-  if (state == ERR_NONE) {
-    // the packet was successfully transmitted
-    debug(" success!");
-    counterTx++;
-
-    // print measured data rate
-    String s = "Datarate:\t";
-    s.concat(lora.dataRate);
-    s.concat(" bps");
-    debug(s);
-
-  } else if (state == ERR_PACKET_TOO_LONG) {
-    // the supplied packet was longer than 256 bytes
-    error(F(" too long!"));
-
-  } else if (state == ERR_TX_TIMEOUT) {
-    // timeout occurred while transmitting packet
-    debug(F(" timeout!"));
-  }
 
 }
 
